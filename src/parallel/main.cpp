@@ -106,7 +106,6 @@ int main(int argc, char ** argv) {
           cout << "connected to client socket "<<client_sock<<endl;
       #endif
 
-      pthread_t thread;
       int *pclient = (int *)malloc(sizeof(int));
       *pclient = client_sock;
 
@@ -203,17 +202,20 @@ void *handle_connection(void *p_client_socket)
 
   while(getline(iss ,line))
   {   
-    // cout <<"While loop line size : "<<  sizeof(line) << endl;
+    
     line = removeWS(line);
     if (line == "DELETE") 
     {   
         string key;
         getline(iss >> ws,key);
+        
         key = removeWS(key);
         #ifdef LOGGING
             cout << "Performing DELETE operation of key = "<<key<< endl;
         #endif
+        pthread_mutex_lock(&mutex);
         const char* done = remove(key).c_str();
+        pthread_mutex_unlock(&mutex);
         write(client_sock,done,strlen(done));
 
     } 
@@ -222,19 +224,22 @@ void *handle_connection(void *p_client_socket)
         #ifdef LOGGING
             cout << "Performing COUNT operation. Number of KV pairs: " << endl;
         #endif
+        pthread_mutex_lock(&mutex);
         const char* count_value = count().c_str();
+        pthread_mutex_unlock(&mutex);
         write(client_sock,count_value,strlen(count_value));
     } 
     else if (line == "READ") 
     {
         string key;
-        
         getline(iss >> ws,key);
         key = removeWS(key);
         #ifdef LOGGING
             cout << "Performing READ operation for key: " << key << endl;
         #endif
+        pthread_mutex_lock(&mutex);
         const char* value_read = read(key).c_str();
+        pthread_mutex_unlock(&mutex);
         write(client_sock,value_read,strlen(value_read));
 
     } else if (line == "WRITE") {
@@ -246,7 +251,9 @@ void *handle_connection(void *p_client_socket)
         #ifdef LOGGING
             cout << "Performing WRITE operation. Key: " << key << ", Value: " << value << endl;
         #endif
+        pthread_mutex_lock(&mutex);
         const char* value_wrote = write(key,value).c_str();
+        pthread_mutex_unlock(&mutex);
         write(client_sock,value_wrote,strlen(value_wrote));
 
 
