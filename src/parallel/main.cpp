@@ -109,6 +109,10 @@ void *thread_function(void *arg)
       pclient = clients_queue.front();
       clients_queue.pop();
     }
+    else {
+      pclient = clients_queue.front();
+      clients_queue.pop();
+    }
     pthread_mutex_unlock(&mutex);
     if(pclient > 0)
     {
