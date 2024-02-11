@@ -1,4 +1,4 @@
-#include <iostream>
+#include<iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -9,7 +9,6 @@
 #include <regex>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <queue>
 using namespace std;
 
 #define maxCon 100
@@ -27,12 +26,20 @@ pthread_cond_t cond_var = PTHREAD_COND_INITIALIZER;
 
 char client_message[1024];
 map<string,string> KV_DATASTORE;
-queue <int> clients_queue;
 
 int check(int code , const char* msg);
-void *handle_connection(int client_sock);
+void *handle_connection(void *p_client_socket);
 void *thread_function(void *arg);
 
+struct node
+{
+    struct node *next;
+    int *client_socket;
+};
+typedef struct node node_t;
+
+void enqueue(int *client_socket);
+int* dequeue();
 
 string removeWS(string &str);
 string write(string key , string value);
@@ -40,9 +47,11 @@ string read (string key);
 string count();
 string remove(string key);
 
+node_t *head = NULL;
+node_t *tail = NULL;
 
 int main(int argc, char ** argv) {
-  int portno;
+  int portno; 
   if (argc != 2) {
     fprintf(stderr, "usage: %s <port>\n", argv[0]);
     exit(1);
@@ -84,8 +93,12 @@ int main(int argc, char ** argv) {
       #ifdef LOGGING
           cout << "connected to client socket "<<client_sock<<endl;
       #endif
+
+      int *pclient = (int *)malloc(sizeof(int));
+      *pclient = client_sock;
+
       pthread_mutex_lock(&mutex);
-      clients_queue.push(client_sock);
+      enqueue(pclient);
       pthread_cond_signal(&cond_var);
       pthread_mutex_unlock(&mutex);
   }
@@ -101,20 +114,15 @@ void *thread_function(void *arg)
 {   
   while (true)
   {
-    int pclient;
+    int *pclient;
     pthread_mutex_lock(&mutex);
-    if((clients_queue.empty()))
+    if((pclient = dequeue()) == nullptr)
     {
       pthread_cond_wait(&cond_var,&mutex);
-      pclient = clients_queue.front();
-      clients_queue.pop();
-    }
-    else {
-      pclient = clients_queue.front();
-      clients_queue.pop();
+      pclient = dequeue();
     }
     pthread_mutex_unlock(&mutex);
-    if(pclient > 0)
+    if(pclient != nullptr)
     {
       handle_connection(pclient);
     }
@@ -130,13 +138,49 @@ int check(int code , const char *msg)
   return code;
 }
 
+void enqueue(int *client_socket)
+{
+  node_t *newnode = (node_t *)malloc(sizeof(node_t));
+  newnode->client_socket = client_socket;
+  newnode->next = NULL;
+  if (tail == NULL)
+  {
+    head = newnode;
+  }
+  else
+  {
+    tail->next = newnode;
+  }
+  tail = newnode;
+}
 
-void *handle_connection(int client_sock)
+int *dequeue()
+{
+  if (head == NULL)
+  {
+    return NULL;
+  }
+  else
+  {
+    int *result = head->client_socket;
+    node_t *temp = head;
+    head = head->next;
+    if (head == NULL)
+    {
+        tail = NULL;
+    }
+    free(temp);
+    return result;
+  }
+}
+
+void *handle_connection(void *p_client_socket)
 {
   #ifdef LOGGING
       cout << "In handle connection" <<endl;
   #endif
-  
+  int client_sock = *((int *)p_client_socket);
+  free(p_client_socket);
   recv(client_sock, client_message, 1024, 0);
 
   istringstream iss(client_message);
@@ -202,10 +246,10 @@ void *handle_connection(int client_sock)
 
     } else if (line == "END") {
         #ifdef LOGGING
-        const char* nl = "\n";
-        write(client_sock,nl,strlen(nl));
             cout << "Ending the connection" << endl;
         #endif
+        const char* nl = "\n";
+        write(client_sock,nl,strlen(nl));
         close(client_sock);
         break;  // Exit the loop upon encountering END
     } else {
@@ -261,3 +305,5 @@ string remove(string key)
     }
     return "NULL\n";
 }
+
+
