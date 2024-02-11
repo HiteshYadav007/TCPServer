@@ -195,8 +195,7 @@ void *handle_connection(void *p_client_socket)
   free(p_client_socket);
   recv(client_sock, client_message, 1024, 0);
 
-  string inputString(client_message);
-  istringstream iss(inputString);
+  istringstream iss(client_message);
   string line;
   
 
