@@ -20,16 +20,15 @@
 using namespace std;
 
 
-#define maxCon 10
+#define maxCon 100
 #define SOCKERROR (-1)
 #define LOGGING 0
 #define BUFSIZE 1024
-#define THREADPOOL 20
 
 typedef struct sockaddr_in SA_IN;
 typedef struct sockaddr SA;
 
-char client_message[1024];
+char client_message[BUFSIZE];
 map<string,string> KV_DATASTORE;
 
 int check(int code , const char* msg);
