@@ -171,6 +171,8 @@ void *handle_connection(void *p_client_socket)
         #ifdef LOGGING
             cout << "Ending the connection" << endl;
         #endif
+	const char* nl = "\n";
+        write(client_sock,nl,strlen(nl));
         close(client_sock);
         break;  // Exit the loop upon encountering END
     } else {
