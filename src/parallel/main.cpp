@@ -62,8 +62,8 @@ int main(int argc, char ** argv) {
   SA_IN server_addr , client_addr ;
   memset(&server_addr,0,sizeof(server_addr));
   server_addr.sin_family = AF_INET;
-	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	server_addr.sin_port = htons(portno);
+  server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  server_addr.sin_port = htons(portno);
 
   for(int i = 0 ; i < THREADPOOL ; i++)
   {
@@ -71,7 +71,8 @@ int main(int argc, char ** argv) {
   }
 
   int server_sock = check(socket(AF_INET, SOCK_STREAM, 0),"Socket faild to exist");
-
+  int reuse = 1;
+  int reuseSock = check(setsockopt(server_sock,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse)),"Setsockopt failed");
   int bindStatus = check(bind(server_sock, (SA *) &server_addr, sizeof(server_addr)),"Error binding socket to local address");
 
   #ifdef LOGGING
